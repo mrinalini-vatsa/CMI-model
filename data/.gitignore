@@ -1,1 +1,5 @@
+# Ignore everything in the data folder...
+data/
 
+# ...EXCEPT for the README.md file
+!data/README.md
