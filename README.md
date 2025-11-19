@@ -1,153 +1,173 @@
-**Classifying Body-Focused Repetitive Behaviors using Multi-Sensor Wrist-Wearable Data**
-This repository contains our full pipeline for the Child Mind Institute – Detecting Behavioral Repetitive Movements competition.
-We build a deep-learning model that classifies BFRB-like vs non-BFRB-like gestures using IMU, thermopile, and time-of-flight (TOF) data collected from the Helios wrist-worn device.
+# Classifying Body-Focused Repetitive Behaviors (BFRBs) Using Multi-Sensor Wrist-Wearable Data
 
- 1. Problem Overview
+This repository contains the full pipeline developed for the *Child Mind Institute – Detecting Behavioral Repetitive Movements* competition.
 
-Body-Focused Repetitive Behaviors (BFRBs) include actions such as:
-hair pulling
-skin picking
-nail biting
+We build a deep-learning system to classify **BFRB-like vs non-BFRB-like gestures** using multi-modal sensor data (IMU, Time-of-Flight, Thermopiles) collected from the Helios wrist-worn device.
 
-These behaviors can cause physical harm and are common in anxiety-related and OCD-related disorders.
+---
 
-The Helios device records:
-IMU (motion + rotation)
-Thermopiles (temperature/heat)
-Time-of-Flight sensors (proximity)
+## 1. Problem Overview
 
-The task is to classify a sensor sequence into one of 18 possible gestures (8 BFRB-like + 10 non-BFRB-like).
+Body-Focused Repetitive Behaviors (BFRBs) include:
 
-2. Repository Structure
-├── train.py              # Full training code (cross-validation, augmentation)
-├── model.py              # Model architecture: FastFeatureExtractor + Efficient Blocks
-├── inference.py          # Prediction pipeline + Kaggle inference server
-├── utils.py              # Preprocessing, filtering, padding utilities
-├── README.md
-└── saved_models/
-      ├── model_fold0.pth
-      ├── model_fold1.pth
-      ├── ...
-      └── scaler.pkl
+- Hair pulling  
+- Skin picking  
+- Nail biting  
+
+These behaviors often occur in anxiety-related and OCD-related disorders and may cause physical harm.
+
+### Sensors in the Helios Device
+
+- IMU (motion + rotation)  
+- Thermopiles (temperature/heat)  
+- Time-of-Flight (TOF) sensors (proximity)
+
+**Goal:** Classify each sensor sequence into **one of 18 gestures**  
+(8 BFRB-like + 10 non-BFRB-like).
+
+---
+
+## 2. Repository Structure
+                   ┌─────────────────────────┐
+                   │     Raw Sensor Data     │
+                   │ (IMU, TOF, Thermopile)  │
+                   └─────────────┬───────────┘
+                                 │
+                                 ▼
+                   ┌─────────────────────────┐
+                   │    Preprocessing        │
+                   │  - Filtering            │
+                   │  - Scaling              │
+                   │  - Padding (len=100)    │
+                   └─────────────┬───────────┘
+                                 │
+                                 ▼
+             ┌─────────────────────────────────────────┐
+             │             Neural Network              │
+             │ ┌──────────────┬─────────────────────┐  │
+             │ │ FastFeature  │ Efficient Conv1D    │  │
+             │ │ Extractor    │ Blocks + SE + Attn  |  │
+             │ └──────────────┴─────────────────────┘  │
+             │                Classifier               │
+             └───────────────────┬─────────────────────┘
+                                 │
+                                 ▼
+                   ┌─────────────────────────┐
+                   │      Predictions        │
+                   │  18-class gesture label │
+                   └─────────────────────────┘
 
 
-(Structure will auto-match your real repo once uploaded.)
 
-3. Key Features of Our Approach
-✔ Multi-modal Sensor Fusion
+## 3. Key Features of Our Approach
 
-We combine:
+### Multi-Modal Sensor Fusion
+We combine features from:
+- IMU accelerometer + gyroscope  
+- TOF proximity sensors  
+- Thermopile heat sensors  
 
-IMU features (acceleration + rotation)
-TOF proximity sensors
-Thermopile heat sensors
+### Advanced Deep Learning Architecture
+Model components include:
 
-✔ Advanced Deep Learning Architecture
+- **FastFeatureExtractor CNN** for IMU  
+- Efficient Conv1D blocks with:
+  - Depthwise separable convolutions  
+  - Pointwise convolutions  
+  - BatchNorm  
+  - Dropout  
+  - Squeeze-and-Excitation (SE)  
+- Multi-head temporal attention  
+- Adaptive pooling  
+- Fully connected classifier  
 
-Our model includes:
-FastFeatureExtractor CNN for IMU streams
+### Regularization Techniques
+- Label smoothing  
+- Dropout (up to 0.4)  
+- Early stopping  
+- Small batch size for stronger generalization  
 
-Efficient Conv1D Blocks with:
-depthwise separable convolutions
-dropout regularization
-BatchNorm
-Squeeze-and-Excitation (SE) blocks
-Multi-head Temporal Attention
-Adaptive pooling + fully connected classifier
+### 5-Fold Stratified Cross-Validation
+Five independently trained models are ensembled for inference.
 
-✔ Strong Regularization
+### Heavy Data Augmentation
+- Gaussian noise  
+- Random magnitude scaling  
+- Time shifting  
+- TOF dropout  
+- Low-pass Butterworth filtering  
 
-Label smoothing
+---
 
-Dropout up to 0.4
+## 4. Installation
 
-Early stopping
-
-Smaller batch size for generalization
-
-✔ 5-Fold Stratified Cross-Validation
-
-We train five models that are ensembled at inference time.
-
-✔ Heavy Data Augmentation
-
-To increase robustness:
-
-Gaussian noise
-
-Random magnitude scaling
-
-Time shifting
-
-Random TOF dropout
-
-Butterworth low-pass filtering
-
-🛠 4. Installation
+```bash
 pip install torch polars pandas numpy scipy scikit-learn joblib
 
+```
+## 5.  Dataset Description
 
-On Kaggle, all required packages are preinstalled.
-
-📦 5. Dataset Description
-
-We use the official competition dataset:
-
-train.csv
-
-test.csv
-
-test_demographics.csv
-
-Each row corresponds to a moment in time.
-Each sequence corresponds to a whole gesture.
-
+The dataset provided in the competition contains synchronized multi-sensor streams collected from the Helios wrist-worn device.
+It includes both raw sensor measurements and metadata required for sequence-level classification.
 Sensors included:
+```
+dataset/
+│
+├── train.csv
+│   ├── sequence_id
+│   ├── timestamp
+│   ├── acc_x, acc_y, acc_z
+│   ├── rot_x, rot_y, rot_z
+│   ├── tof_0 … tof_4
+│   ├── thm_0 … thm_4
+│   └── gesture (label)
+│
+├── test.csv
+│   ├── same sensor features (no label)
+│
+└── test_demographics.csv
+    ├── sequence_id
+    ├── age
+    ├── gender
+    └── handedness
+```
+## 6. Preprocessing Pipeline
 
-Sensor Type	Features
-IMU	acc_x, acc_y, acc_z, rot_x, rot_y, rot_z
-TOF	tof_0 … tof_4
-Thermopile	thm_0 … thm_4
+- Group by sequence_id
 
-The dataset includes metadata: gesture name, subject ID, orientation, and timestamps.
+- Handle missing values
 
-🧹 6. Preprocessing Pipeline
+- Apply Butterworth low-pass filter
 
-Group by sequence_id
+- Standardize features (StandardScaler)
 
-Fill missing values
+- Pad sequences to length 100
 
-Low-pass Butterworth filter for IMU
-
-Standardize features with StandardScaler
-
-Pad sequences to length = 100
-
-Convert to tensor format
-
- 7. Model Training
+- Convert to tensors
+## 7. Model Training
 
 To train using cross-validation:
 
+```
 python train.py
-
+```
 
 Training features:
 
-Optimizer: AdamW
+- Optimizer: AdamW
 
-LR: 1.5e-3 with OneCycleLR
+- LR: 1.5e-3 with OneCycleLR
 
-Loss: CrossEntropy + Label Smoothing
+- Loss: CrossEntropy + Label Smoothing
 
-EPOCHS = 100
+- EPOCHS = 100
 
-PATIENCE = 20
+- PATIENCE = 20
 
-AMP mixed precision for speed
+- AMP mixed precision for speed
 
 This produces:
-
+```
 model_fold0.pth
 model_fold1.pth
 ...
@@ -155,38 +175,38 @@ model_fold4.pth
 scaler.pkl
 feature_cols.npy
 classes.npy
-
-🔮 8. Inference
+```
+## 8. Inference
 
 To predict one sequence:
-
+```
 from inference import predict
 result = predict(sequence_df, demographics_df)
 
-
+```
 Behind the scenes:
 
-Preprocessing identical to training
+- Preprocessing identical to training
 
-Ensemble of 5 models
+- Ensemble of 5 models
 
-Average softmax probability
+- Average softmax probability
 
-Return gesture label (string)
+- Return gesture label (string)
 
-9. Kaggle Integration
+## 9. Kaggle Integration
 
 Our repository supports:
 
-CMIInferenceServer for competition submissions
+- CMIInferenceServer for competition submissions
 
-Local gateway for testing
+- Local gateway for testing
 
 To run locally:
-
+```
 python inference.py
-
- 10. Results
+```
+## 10. Results
 
 
  Leaderboard score: 0.72
