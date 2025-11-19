@@ -1,1 +1,51 @@
+GPU TESLA 4(preferably 2 X T4)
+Python libraries:
+Core Libraries:
+1. Data Processing & Analysis:
+
+numpy - Numerical computations, array operations
+pandas - DataFrame operations, CSV reading
+polars - Fast DataFrame library (used in API interface)
+
+2. Deep Learning (PyTorch):
+
+torch - Main PyTorch library
+torch.nn - Neural network modules
+torch.nn.functional - Functional API (F.softmax, etc.)
+torch.utils.data - Dataset and DataLoader classes
+torch.optim - Optimizers (AdamW)
+torch.cuda.amp - Automatic Mixed Precision (autocast, GradScaler)
+
+3. Machine Learning (scikit-learn):
+
+sklearn.model_selection - StratifiedKFold for cross-validation
+sklearn.preprocessing - StandardScaler, LabelEncoder
+
+4. Signal Processing:
+
+scipy.signal - Signal processing functions:
+
+savgol_filter - Savitzky-Golay filtering
+spectrogram - Compute spectrograms for frequency analysis
+
+
+scipy.ndimage - Image processing:
+
+gaussian_filter1d - Gaussian smoothing
+
+
+
+5. Utilities:
+
+joblib - Save/load models and scalers
+os - Operating system interface
+pathlib.Path - File path operations
+random - Random number generation
+gc - Garbage collection
+warnings - Warning control
+
+6. Competition-Specific:
+
+kaggle_evaluation.cmi_inference_server - Kaggle's evaluation API
+
 
